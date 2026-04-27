@@ -84,7 +84,27 @@ Returns statistics for each number (0-9).
 
 ---
 
-### 4. Health Check
+### 4. User Data
+```
+GET /wingo/user
+```
+
+Returns user data (requires JWT token).
+
+**Headers**
+- `Authorization: Bearer <token>`
+
+**Response**
+```json
+{
+  "userId": "user123",
+  "balance": 1000.50
+}
+```
+
+---
+
+### 5. Health Check
 ```
 GET /health
 ```

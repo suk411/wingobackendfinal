@@ -4,6 +4,7 @@ const config = require('./config');
 const { connectDB } = require('./db/mongo');
 const { redis } = require('./db/redis');
 const winGoRoutes = require('./routes/winGo');
+const userRoutes = require('./routes/user');
 const { startScheduler } = require('./services/scheduler');
 
 const app = express();
@@ -12,6 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/WinGo', winGoRoutes);
+app.use('/wingo', userRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
