@@ -5,6 +5,8 @@ const KEY_PREFIX = 'wingo:round:';
 
 async function getCurrentIssueNumber() {
   const now = Date.now();
+  const currentRoundEnd = Math.floor(now / ROUND_DURATION_MS) * ROUND_DURATION_MS;
+  
   const date = new Date(now);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -12,33 +14,20 @@ async function getCurrentIssueNumber() {
   
   const basePart = `${year}${month}${day}`;
   const sequenceKey = `${KEY_PREFIX}sequence:${basePart}`;
+  const roundKey = `${KEY_PREFIX}currentRound:${basePart}`;
   
+  const storedRound = await redis.get(roundKey);
   let sequence = await redis.get(sequenceKey);
-  if (!sequence) {
-    sequence = '1';
+  
+  if (!sequence || String(storedRound) !== String(currentRoundEnd)) {
+    if (!sequence) {
+      sequence = '1';
+    } else {
+      sequence = String(parseInt(sequence) + 1);
+    }
     await redis.set(sequenceKey, sequence, 'PX', 86400000);
+    await redis.set(roundKey, String(currentRoundEnd), 'PX', 86400000);
   }
-  
-  return `${basePart}${String(sequence).padStart(5, '0')}`;
-}
-
-async function getNextSequence() {
-  const now = Date.now();
-  const date = new Date(now);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  
-  const basePart = `${year}${month}${day}`;
-  const sequenceKey = `${KEY_PREFIX}sequence:${basePart}`;
-  
-  let sequence = await redis.get(sequenceKey);
-  if (!sequence) {
-    sequence = '1';
-  } else {
-    sequence = String(parseInt(sequence) + 1);
-  }
-  await redis.set(sequenceKey, sequence, 'PX', 86400000);
   
   return `${basePart}${String(sequence).padStart(5, '0')}`;
 }
