@@ -30,7 +30,8 @@ function calculateStats(history) {
     });
 
     const openCount = positions.length;
-    const missingCount = openCount === 0 ? history.length : history.length - 1 - positions[0];
+    const lastPosition = positions.length > 0 ? positions[positions.length - 1] : -1;
+    const missingCount = lastPosition >= 0 ? (history.length - 1) - lastPosition : history.length;
     const avgMissing = openCount > 0 ? Math.round(history.length / openCount) : 0;
     const maxContinuous = calculateMaxContinuous(positions);
 
