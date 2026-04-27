@@ -1,4 +1,4 @@
-const { getCurrentIssueNumber } = require('./roundService');
+const { getPreviousIssueNumber } = require('./roundService');
 const { drawResult } = require('./drawService');
 const { redis } = require('../db/redis');
 
@@ -11,7 +11,9 @@ async function checkAndDraw() {
     const roundEnd = Math.floor(now / 30000) * 30000;
     
     if (String(roundEnd) !== lastDraw) {
-      const prevIssue = await getPreviousIssueForTime(roundEnd);
+      const { getCurrentIssueNumber } = require('./roundService');
+      const currentIssue = await getCurrentIssueNumber();
+      const prevIssue = await getPreviousIssueNumber(currentIssue);
       
       if (prevIssue) {
         await drawResult(prevIssue);
@@ -22,24 +24,6 @@ async function checkAndDraw() {
   } catch (err) {
     console.error('Draw scheduler error:', err.message);
   }
-}
-
-async function getPreviousIssueForTime(timestamp) {
-  const date = new Date(timestamp);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  
-  const basePart = `${year}${month}${day}`;
-  const seqKey = `wingo:round:sequence:${basePart}`;
-  
-  let seq = await redis.get(seqKey);
-  if (!seq) return null;
-  
-  const seqNum = parseInt(seq) - 1;
-  if (seqNum < 1) return null;
-  
-  return `${basePart}${String(seqNum).padStart(5, '0')}`;
 }
 
 function startScheduler() {

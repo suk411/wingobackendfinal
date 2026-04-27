@@ -13,6 +13,7 @@ const BETTING_PERIOD_MS = 25000;
 const ROUND_DURATION_MS = 30000;
 const KEY_PREFIX = 'wingo:draw:';
 const HISTORY_KEY = 'wingo:draw:history';
+const CACHE_LIMIT = 10;
 
 async function drawResult(issueNumber) {
   const existing = await redis.get(`${KEY_PREFIX}${issueNumber}`);
@@ -25,7 +26,7 @@ async function drawResult(issueNumber) {
   await redis.set(`${KEY_PREFIX}${issueNumber}`, String(number), 'EX', 86400);
   
   await redis.lpush(HISTORY_KEY, JSON.stringify({ issueNumber, number }));
-  await redis.ltrim(HISTORY_KEY, 0, 999);
+  await redis.ltrim(HISTORY_KEY, 0, CACHE_LIMIT - 1);
 
   try {
     await Result.create({ issueNumber, number });
@@ -56,40 +57,39 @@ async function getResultByIssue(issueNumber) {
 }
 
 async function getDrawHistory(limit = 10, page = 1) {
-  const start = (page - 1) * limit;
-  const end = start + limit - 1;
+  const skip = (page - 1) * limit;
   
-  let results = await redis.lrange(HISTORY_KEY, start, end);
-  let total = await redis.llen(HISTORY_KEY);
-  
-  if (total === 0) {
-    try {
-      const mongoResults = await Result.find()
-        .sort({ issueNumber: -1 })
-        .limit(limit)
-        .lean();
-      
-      total = await Result.countDocuments();
-      
-      if (mongoResults.length > 0) {
-        results = mongoResults.map(r => JSON.stringify({ issueNumber: r.issueNumber, number: r.number }));
-        
-        for (const r of mongoResults) {
-          await redis.lpush(HISTORY_KEY, JSON.stringify({ issueNumber: r.issueNumber, number: r.number }));
-        }
-        await redis.ltrim(HISTORY_KEY, 0, 999);
+  try {
+    const [mongoResults, total] = await Promise.all([
+      Result.find().sort({ issueNumber: -1 }).skip(skip).limit(limit).lean(),
+      Result.countDocuments(),
+    ]);
+    
+    let results = mongoResults.map(r => JSON.stringify({ issueNumber: r.issueNumber, number: r.number }));
+    let list = results.map(r => JSON.parse(r));
+    
+    if (page === 1 && mongoResults.length > 0) {
+      for (const r of mongoResults.slice(0, CACHE_LIMIT)) {
+        await redis.lpush(HISTORY_KEY, JSON.stringify({ issueNumber: r.issueNumber, number: r.number }));
       }
-    } catch (err) {
-      console.error('MongoDB read error:', err.message);
+      await redis.ltrim(HISTORY_KEY, 0, CACHE_LIMIT - 1);
     }
+    
+    return {
+      list,
+      pageNo: page,
+      totalPage: Math.ceil(total / limit),
+      totalCount: total,
+    };
+  } catch (err) {
+    console.error('MongoDB read error:', err.message);
+    return {
+      list: [],
+      pageNo: page,
+      totalPage: 0,
+      totalCount: 0,
+    };
   }
-  
-  return {
-    list: results.map(r => JSON.parse(r)),
-    pageNo: page,
-    totalPage: Math.ceil(total / limit),
-    totalCount: total,
-  };
 }
 
 function isInDrawPeriod() {
