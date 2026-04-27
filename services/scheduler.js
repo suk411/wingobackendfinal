@@ -1,4 +1,4 @@
-const { getPreviousIssueNumber } = require('./roundService');
+const { getCurrentIssueNumber, getPreviousIssueNumber } = require('./roundService');
 const { drawResult } = require('./drawService');
 const { redis } = require('../db/redis');
 
@@ -11,7 +11,6 @@ async function checkAndDraw() {
     const roundEnd = Math.floor(now / 30000) * 30000;
     
     if (String(roundEnd) !== lastDraw) {
-      const { getCurrentIssueNumber } = require('./roundService');
       const currentIssue = await getCurrentIssueNumber();
       const prevIssue = await getPreviousIssueNumber(currentIssue);
       
