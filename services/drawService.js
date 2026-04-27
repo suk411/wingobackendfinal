@@ -1,4 +1,13 @@
+const mongoose = require('mongoose');
 const { redis } = require('../db/redis');
+
+const resultSchema = new mongoose.Schema({
+  issueNumber: { type: String, required: true, unique: true },
+  number: { type: Number, required: true, min: 0, max: 9 },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const Result = mongoose.models.Result || mongoose.model('Result', resultSchema);
 
 const BETTING_PERIOD_MS = 25000;
 const ROUND_DURATION_MS = 30000;
@@ -18,6 +27,12 @@ async function drawResult(issueNumber) {
   await redis.lpush(HISTORY_KEY, JSON.stringify({ issueNumber, number }));
   await redis.ltrim(HISTORY_KEY, 0, 999);
 
+  try {
+    await Result.create({ issueNumber, number });
+  } catch (err) {
+    if (err.code !== 11000) console.error('MongoDB save error:', err.message);
+  }
+
   return number;
 }
 
@@ -26,6 +41,17 @@ async function getResultByIssue(issueNumber) {
   if (cached !== null) {
     return parseInt(cached);
   }
+
+  try {
+    const result = await Result.findOne({ issueNumber });
+    if (result) {
+      await redis.set(KEY_PREFIX + issueNumber, String(result.number), 'EX', 86400);
+      return result.number;
+    }
+  } catch (err) {
+    console.error('MongoDB read error:', err.message);
+  }
+
   return null;
 }
 
@@ -33,8 +59,30 @@ async function getDrawHistory(limit = 10, page = 1) {
   const start = (page - 1) * limit;
   const end = start + limit - 1;
   
-  const results = await redis.lrange(HISTORY_KEY, start, end);
-  const total = await redis.llen(HISTORY_KEY);
+  let results = await redis.lrange(HISTORY_KEY, start, end);
+  let total = await redis.llen(HISTORY_KEY);
+  
+  if (total === 0) {
+    try {
+      const mongoResults = await Result.find()
+        .sort({ issueNumber: -1 })
+        .limit(limit)
+        .lean();
+      
+      total = await Result.countDocuments();
+      
+      if (mongoResults.length > 0) {
+        results = mongoResults.map(r => JSON.stringify({ issueNumber: r.issueNumber, number: r.number }));
+        
+        for (const r of mongoResults) {
+          await redis.lpush(HISTORY_KEY, JSON.stringify({ issueNumber: r.issueNumber, number: r.number }));
+        }
+        await redis.ltrim(HISTORY_KEY, 0, 999);
+      }
+    } catch (err) {
+      console.error('MongoDB read error:', err.message);
+    }
+  }
   
   return {
     list: results.map(r => JSON.parse(r)),
@@ -57,4 +105,5 @@ module.exports = {
   isInDrawPeriod,
   BETTING_PERIOD_MS,
   ROUND_DURATION_MS,
+  Result,
 };
