@@ -14,30 +14,6 @@ GET /WinGo/WinGo_30S.json
 
 Returns current round info (previous, current, next round with issueNumber, startTime, endTime).
 
-**Response**
-```json
-{
-  "gameCode": "WinGo_30S",
-  "intervalMinute": 0.5,
-  "state": 1,
-  "previous": {
-    "issueNumber": "2026042700001",
-    "startTime": 1777277550000,
-    "endTime": 1777277580000
-  },
-  "current": {
-    "issueNumber": "2026042700002",
-    "startTime": 1777277580000,
-    "endTime": 1777277610000
-  },
-  "next": {
-    "issueNumber": "2026042700003",
-    "startTime": 1777277610000,
-    "endTime": 1777277640000
-  }
-}
-```
-
 ---
 
 ### 2. Draw History
@@ -45,7 +21,11 @@ Returns current round info (previous, current, next round with issueNumber, star
 GET /WinGo/WinGo_30S/GetHistoryIssuePage.json?pageNo=1
 ```
 
-Returns list of draw results (issueNumber, number). 25s betting + 5s result period per round.
+Returns list of draw results with pagination.
+
+**Query Params**
+- `pageNo` - Page number (default: 1)
+- `limit` - Items per page (default: 10)
 
 **Response**
 ```json
@@ -56,8 +36,8 @@ Returns list of draw results (issueNumber, number). 25s betting + 5s result peri
       { "issueNumber": "2026042700001", "number": 3 }
     ],
     "pageNo": 1,
-    "totalPage": 50,
-    "totalCount": 500
+    "totalPage": 1,
+    "totalCount": 10
   },
   "code": 0,
   "msg": "Succeed",
