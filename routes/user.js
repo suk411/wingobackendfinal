@@ -19,6 +19,7 @@ function verifyToken(req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
+    console.error('JWT verify error:', err.message, 'Secret:', config.jwtSecret ? 'loaded' : 'MISSING');
     return res.status(401).json({ msg: 'Invalid token' });
   }
 }
@@ -26,7 +27,7 @@ function verifyToken(req, res, next) {
 router.get('/user', verifyToken, async (req, res) => {
   try {
     const response = await axios.get(
-      'https://backend-ledger-0ra6.onrender.com/api/account/balance',
+      config.balanceApiUrl,
       {
         headers: {
           Authorization: req.headers.authorization
