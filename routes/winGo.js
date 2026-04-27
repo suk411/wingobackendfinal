@@ -13,7 +13,7 @@ router.get('/WinGo_30S.json', async (req, res) => {
   }
 });
 
-router.get('/GetHistoryIssuePage.json', async (req, res) => {
+router.get('/WinGo_30S/GetHistoryIssuePage.json', async (req, res) => {
   try {
     const page = parseInt(req.query.pageNo) || 1;
     const limit = 10;
