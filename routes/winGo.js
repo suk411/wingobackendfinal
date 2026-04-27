@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getRoundData } = require('../services/roundService');
 const { getDrawHistory } = require('../services/drawService');
+const { getTrendStatistics } = require('../services/trendService');
 
 router.get('/WinGo_30S.json', async (req, res) => {
   try {
@@ -28,6 +29,23 @@ router.get('/WinGo_30S/GetHistoryIssuePage.json', async (req, res) => {
     });
   } catch (err) {
     console.error('Error getting history:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/WinGo_30S/GetTrendStatistics.json', async (req, res) => {
+  try {
+    const data = await getTrendStatistics();
+    
+    res.json({
+      data,
+      code: 0,
+      msg: 'Succeed',
+      msgCode: 0,
+      serviceTime: Date.now(),
+    });
+  } catch (err) {
+    console.error('Error getting trend statistics:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
