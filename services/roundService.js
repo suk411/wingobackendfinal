@@ -9,25 +9,17 @@ async function getCurrentIssueNumber() {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
   
-  const basePart = `${year}${month}${day}${hours}${minutes}${seconds}`;
+  const basePart = `${year}${month}${day}`;
   const sequenceKey = `${KEY_PREFIX}sequence:${basePart}`;
   
   let sequence = await redis.get(sequenceKey);
   if (!sequence) {
     sequence = '1';
-    await redis.set(sequenceKey, sequence, 'EX', 3600);
+    await redis.set(sequenceKey, sequence, 'EX', 86400);
   } else {
-    const currentSecond = Math.floor(now / 1000);
-    const storedSecond = await redis.get(`${KEY_PREFIX}second`);
-    if (storedSecond != currentSecond) {
-      sequence = '1';
-      await redis.set(sequenceKey, sequence, 'EX', 3600);
-      await redis.set(`${KEY_PREFIX}second`, currentSecond);
-    }
+    sequence = String(parseInt(sequence) + 1);
+    await redis.set(sequenceKey, sequence, 'EX', 86400);
   }
   
   return `${basePart}${sequence.padStart(5, '0')}`;
@@ -86,10 +78,7 @@ function generateIssueNumber(date, sequence) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  return `${year}${month}${day}${hours}${minutes}${seconds}${sequence.padStart(5, '0')}`;
+  return `${year}${month}${day}${sequence.padStart(5, '0')}`;
 }
 
 module.exports = {
