@@ -69,10 +69,18 @@ async function getDrawHistory(limit = 10, page = 1) {
     let list = results.map(r => JSON.parse(r));
     
     if (page === 1 && mongoResults.length > 0) {
-      for (const r of mongoResults.slice(0, CACHE_LIMIT)) {
-        await redis.lpush(HISTORY_KEY, JSON.stringify({ issueNumber: r.issueNumber, number: r.number }));
+      const cacheKey = `${HISTORY_KEY}:current`;
+      const cachedIssue = await redis.get(cacheKey);
+      const latestIssue = mongoResults[0].issueNumber;
+      
+      if (cachedIssue !== latestIssue) {
+        await redis.del(HISTORY_KEY);
+        for (const r of mongoResults.slice(0, CACHE_LIMIT)) {
+          await redis.lpush(HISTORY_KEY, JSON.stringify({ issueNumber: r.issueNumber, number: r.number }));
+        }
+        await redis.ltrim(HISTORY_KEY, 0, CACHE_LIMIT - 1);
+        await redis.set(cacheKey, latestIssue);
       }
-      await redis.ltrim(HISTORY_KEY, 0, CACHE_LIMIT - 1);
     }
     
     return {
