@@ -16,13 +16,31 @@ async function getCurrentIssueNumber() {
   let sequence = await redis.get(sequenceKey);
   if (!sequence) {
     sequence = '1';
-    await redis.set(sequenceKey, sequence, 'EX', 86400);
-  } else {
-    sequence = String(parseInt(sequence) + 1);
-    await redis.set(sequenceKey, sequence, 'EX', 86400);
+    await redis.set(sequenceKey, sequence, 'PX', 86400000);
   }
   
-  return `${basePart}${sequence.padStart(5, '0')}`;
+  return `${basePart}${String(sequence).padStart(5, '0')}`;
+}
+
+async function getNextSequence() {
+  const now = Date.now();
+  const date = new Date(now);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  const basePart = `${year}${month}${day}`;
+  const sequenceKey = `${KEY_PREFIX}sequence:${basePart}`;
+  
+  let sequence = await redis.get(sequenceKey);
+  if (!sequence) {
+    sequence = '1';
+  } else {
+    sequence = String(parseInt(sequence) + 1);
+  }
+  await redis.set(sequenceKey, sequence, 'PX', 86400000);
+  
+  return `${basePart}${String(sequence).padStart(5, '0')}`;
 }
 
 async function getRoundData() {
@@ -36,7 +54,7 @@ async function getRoundData() {
   
   const currentIssue = await getCurrentIssueNumber();
   const prevIssue = await getPreviousIssueNumber(currentIssue);
-  const nextIssue = await getNextIssueNumber(currentIssue);
+  const nextIssue = currentIssue.slice(0, -5) + String(parseInt(currentIssue.slice(-5)) + 1).padStart(5, '0');
   
   return {
     gameCode: 'WinGo_30S',
@@ -85,6 +103,5 @@ module.exports = {
   getRoundData,
   getCurrentIssueNumber,
   getPreviousIssueNumber,
-  getNextIssueNumber,
   ROUND_DURATION_MS,
 };

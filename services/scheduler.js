@@ -9,8 +9,9 @@ async function checkAndDraw() {
     const lastDraw = await redis.get(BETTING_CLOSE_KEY);
     const now = Date.now();
     const roundEnd = Math.floor(now / 30000) * 30000;
+    const positionInRound = now % 30000;
     
-    if (String(roundEnd) !== lastDraw) {
+    if (positionInRound < 5000 && String(roundEnd) !== lastDraw) {
       const currentIssue = await getCurrentIssueNumber();
       const prevIssue = await getPreviousIssueNumber(currentIssue);
       
