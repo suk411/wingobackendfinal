@@ -4,6 +4,7 @@ const config = require('./config');
 const { connectDB } = require('./db/mongo');
 const { redis } = require('./db/redis');
 const winGoRoutes = require('./routes/winGo');
+const { startScheduler } = require('./services/scheduler');
 
 const app = express();
 
@@ -20,6 +21,7 @@ const startServer = async () => {
   try {
     await connectDB();
     await redis.connect();
+    startScheduler();
     
     app.listen(config.port, () => {
       console.log(`Server running on port ${config.port}`);

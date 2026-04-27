@@ -83,5 +83,6 @@ function generateIssueNumber(date, sequence) {
 
 module.exports = {
   getRoundData,
+  getCurrentIssueNumber,
   ROUND_DURATION_MS,
 };
