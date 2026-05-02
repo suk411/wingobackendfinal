@@ -5,6 +5,7 @@ const { connectDB } = require('./db/mongo');
 const { redis } = require('./db/redis');
 const winGoRoutes = require('./routes/winGo');
 const userRoutes = require('./routes/user');
+const settleRoutes = require('./routes/settle');
 const { startScheduler } = require('./services/scheduler');
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(express.json());
 
 app.use('/WinGo', winGoRoutes);
 app.use('/wingo', userRoutes);
+app.use('/api/wingo', settleRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

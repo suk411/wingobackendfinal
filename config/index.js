@@ -8,4 +8,5 @@ module.exports = {
   jwtSecret: process.env.JWT_SECRET,
   adminKey: process.env.ADMIN_KEY,
   balanceApiUrl: process.env.BALANCE_API_URL || 'https://backend-ledger-0ra6.onrender.com/api/account/balance',
+  wingoApiKey: process.env.WINGO_API_KEY,
 };
